@@ -20,6 +20,9 @@ jobs:
 
       - name: uv 설치
         uses: astral-sh/setup-uv@v5
+        with:
+          # 캐시 정리 단계가 실행 중인 자식 프로세스와 충돌하므로 사용하지 않는다
+          enable-cache: false
 
       - name: 가상환경 생성 (Python 3.12)
         working-directory: ch02
@@ -41,7 +44,14 @@ jobs:
         working-directory: ch02
         run: |
           cp .env.example .env
-          uv run langgraph dev --no-browser --port 2024 > dev.log 2>&1 &
+          # 로그는 감시 폴더 밖에 둔다 (안에 두면 핫 리로드가 무한 반복된다)
+          uv run langgraph dev --no-browser --port 2024 > "$RUNNER_TEMP/dev.log" 2>&1 &
+          SERVER_PID=$!
+          # 확인이 끝나면 서버와 자식 프로세스를 반드시 정리한다.
+          # 남겨두면 후속 정리 단계가 파일 핸들 충돌로 실패한다.
+          cleanup() { pkill -P "$SERVER_PID" 2>/dev/null || true; kill "$SERVER_PID" 2>/dev/null || true; }
+          trap cleanup EXIT
+
           for i in $(seq 1 30); do
             if curl -sf -m 3 http://127.0.0.1:2024/ok; then
               echo ""
@@ -51,5 +61,5 @@ jobs:
             sleep 2
           done
           echo "기동 실패 — 로그:"
-          cat dev.log
+          cat "$RUNNER_TEMP/dev.log"
           exit 1
