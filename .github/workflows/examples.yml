@@ -1,0 +1,55 @@
+name: examples
+
+# 예제가 고정 버전에서 실제로 동작하는지 확인합니다.
+# LLM을 호출하는 예제는 제외하므로 API 키가 필요하지 않습니다.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # 매주 월요일 — 의존성 변화로 예제가 깨지는지 감지
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+jobs:
+  ch02:
+    name: 02장 — 개발 환경 구축
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: uv 설치
+        uses: astral-sh/setup-uv@v5
+
+      - name: 가상환경 생성 (Python 3.12)
+        working-directory: ch02
+        run: uv venv --python 3.12
+
+      - name: 패키지 설치 (고정 버전)
+        working-directory: ch02
+        run: uv pip install -r requirements.txt
+
+      - name: 환경 점검
+        working-directory: ch02
+        run: uv run python check_env.py
+
+      - name: 그래프 단독 실행
+        working-directory: ch02
+        run: uv run python graph.py
+
+      - name: 개발 서버 기동 확인
+        working-directory: ch02
+        run: |
+          cp .env.example .env
+          uv run langgraph dev --no-browser --port 2024 > dev.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -sf -m 3 http://127.0.0.1:2024/ok; then
+              echo ""
+              echo "개발 서버 기동 확인"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "기동 실패 — 로그:"
+          cat dev.log
+          exit 1
