@@ -14,6 +14,11 @@ import importlib.metadata as md
 import os
 import sys
 
+# 이 스크립트는 "인코딩 설정이 안 된 환경"을 진단하는 도구입니다.
+# 따라서 그 환경에서도 죽지 않아야 합니다. 출력 인코딩을 먼저 고정합니다.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # 이 책이 기준으로 삼는 버전
 EXPECTED = {
     "langgraph": "1.2.10",
@@ -97,10 +102,46 @@ def check_env_vars():
     return rows
 
 
+def check_platform_env():
+    """한국어 Windows 에서 개발 서버 기동을 막는 두 항목을 점검합니다."""
+    rows, ok = [], True
+    is_windows = sys.platform == "win32"
+
+    utf8_mode = sys.flags.utf8_mode  # PYTHONUTF8=1 또는 -X utf8 이면 1
+    if utf8_mode:
+        rows.append(("PYTHONUTF8", "적용됨 (UTF-8 모드)", "OK"))
+    elif is_windows:
+        rows.append(("PYTHONUTF8", "미적용", "설정 필요 — 개발 서버가 기동하지 않습니다"))
+        ok = False
+    else:
+        rows.append(("PYTHONUTF8", "미적용", "OK (Windows 아님 — 불필요)"))
+
+    pypath = os.environ.get("PYTHONPATH", "")
+    if not pypath:
+        rows.append(("PYTHONPATH", "비어 있음", "OK"))
+    else:
+        entries = [p for p in pypath.split(os.pathsep) if p]
+        rows.append(("PYTHONPATH", f"{len(entries)}개 경로 등록됨", "확인 필요 — 비우기를 권합니다"))
+        ok = False
+
+    encoding = sys.getdefaultencoding()
+    fs_encoding = sys.getfilesystemencoding()
+    rows.append(("기본 인코딩", f"{encoding} / 파일시스템 {fs_encoding}", "OK" if encoding == "utf-8" else "확인"))
+    return ok, rows
+
+
 def main():
     print("=" * 56)
     print(" 그래프 엔지니어링 환경 점검")
     print("=" * 56)
+
+    # .env 에 넣은 키도 점검 대상에 포함합니다.
+    try:
+        from dotenv import load_dotenv
+
+        load_dotenv()
+    except ImportError:
+        pass
 
     ok_py, msg = check_python()
     print(f"\n[1] 파이썬\n    {msg}")
@@ -116,14 +157,21 @@ def main():
     for mod, status in imports:
         print(f"    {mod:<42} {status}")
 
-    print("\n[4] 환경변수 (값은 출력하지 않습니다)")
+    print("\n[4] 플랫폼 설정 (개발 서버 기동 조건)")
+    ok_plat, plat_rows = check_platform_env()
+    for name, value, status in plat_rows:
+        print(f"    {name:<16} {value:<28} {status}")
+
+    print("\n[5] 환경변수 (값은 출력하지 않습니다)")
     for key, status in check_env_vars():
         print(f"    {key:<24} {status}")
 
     print("\n" + "=" * 56)
     import_ok = all(s == "OK" for _, s in imports)
-    if ok_py and ok_pkg and import_ok:
+    if ok_py and ok_pkg and import_ok and ok_plat:
         print(" 점검 통과 — 다음 장으로 진행할 수 있습니다")
+    elif ok_py and ok_pkg and import_ok:
+        print(" 설치는 정상. 플랫폼 설정을 확인하세요 (02-1 참조)")
     else:
         print(" 점검 실패 — 위의 '설치 필요' / '실패' 항목을 확인하세요")
     print("=" * 56)
