@@ -39,6 +39,7 @@ cp .env.example .env
 |---|---|---|
 | `check_env.py` | 환경 점검 — 파이썬·패키지·임포트·환경변수 4단계 확인 | 02-9 |
 | `graph.py` | 최소 그래프 (조사 → 요약 2노드) | 02-5, 02-6 |
+| `graph_traced.py` | Langfuse 추적을 붙인 그래프 (검증 노드 추가) | 02-7 |
 | `langgraph.json` | 개발 서버 설정 | 02-5 |
 | `requirements.txt` | 기준 버전 고정 | 02-3 |
 
@@ -53,7 +54,26 @@ uv run python graph.py
 
 # 개발 서버 (Studio 연결)
 uv run langgraph dev
+
+# Langfuse 추적 확인 (LANGFUSE_* 환경변수 필요)
+uv run python graph_traced.py
 ```
+
+## Langfuse 연동에 관해
+
+추적을 붙이는 코드는 사실상 한 줄입니다. LangGraph 전용 설정은 없고 LangChain 콜백 방식을 그대로 씁니다.
+
+```python
+from langfuse.langchain import CallbackHandler
+
+handler = CallbackHandler()
+graph.invoke(state, config={"callbacks": [handler]})
+```
+
+- **리전마다 계정과 데이터가 분리됩니다.** 키를 발급받은 리전과 `LANGFUSE_BASE_URL`이 같아야 합니다. 나중에 옮기려면 새 계정을 만들어 데이터를 이관해야 하므로 처음에 정하세요.
+- 짧게 끝나는 스크립트는 전송 전에 프로세스가 종료될 수 있습니다. `langfuse.flush()`를 호출하세요.
+- 트레이스가 화면에 반영되기까지 10초 정도 걸립니다.
+- **LLM을 호출하지 않는 코드 전용 노드도 트레이스에 그대로 보입니다** (Langfuse 4.14.3 실측). 별도 설정이 필요하지 않습니다.
 
 개발 서버가 뜨면 출력에 표시되는 Studio UI 주소로 접속합니다. Docker가 필요 없고 LangSmith 계정도 필요하지 않습니다.
 
