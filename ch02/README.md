@@ -38,6 +38,7 @@ cp .env.example .env
 | 파일 | 용도 | 관련 절 |
 |---|---|---|
 | `check_env.py` | 환경 점검 — 파이썬·패키지·임포트·환경변수 4단계 확인 | 02-9 |
+| `first_call.py` | LLM 첫 호출 — 응답·토큰·비용 확인 | 02-4 |
 | `graph.py` | 최소 그래프 (조사 → 요약 2노드) | 02-5, 02-6 |
 | `graph_traced.py` | Langfuse 추적을 붙인 그래프 (검증 노드 추가) | 02-7 |
 | `langgraph.json` | 개발 서버 설정 | 02-5 |
@@ -55,9 +56,26 @@ uv run python graph.py
 # 개발 서버 (Studio 연결)
 uv run langgraph dev
 
+# LLM 첫 호출 (OPENAI_API_KEY 필요)
+uv run python first_call.py
+
 # Langfuse 추적 확인 (LANGFUSE_* 환경변수 필요)
 uv run python graph_traced.py
 ```
+
+## OpenAI 호환 서버를 쓰는 경우
+
+`OPENAI_BASE_URL`만 채우면 됩니다. 자체 호스팅 서버, 게이트웨이, 로컬 추론 서버 모두 같습니다.
+
+```python
+llm = ChatOpenAI(
+    model=os.environ["OPENAI_MODEL"],
+    base_url=os.environ.get("OPENAI_BASE_URL") or None,  # 비우면 공식 API
+    api_key=os.environ["OPENAI_API_KEY"],
+)
+```
+
+책 본문은 공식 OpenAI API 기준으로 서술합니다. 예제 코드는 두 경우 모두 동작합니다.
 
 ## Langfuse 연동에 관해
 
