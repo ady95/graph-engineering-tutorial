@@ -1,0 +1,7 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "split_graph": "./split_graph.py:graph"
+  },
+  "env": ".env"
+}
