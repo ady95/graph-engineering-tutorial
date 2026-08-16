@@ -1,0 +1,9 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "router": "./router_graph.py:graph",
+    "maker_checker": "./maker_checker.py:graph",
+    "orchestrator": "./orchestrator_workers.py:graph"
+  },
+  "env": ".env"
+}
