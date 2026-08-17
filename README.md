@@ -60,7 +60,7 @@ uv pip install -r requirements.txt
 cp .env.example .env
 ```
 
-**`.env`에는 ASCII만 쓰세요.** 한글 주석 한 줄로도 개발 서버가 기동 실패합니다 (python-dotenv가 로케일 인코딩으로 읽습니다).
+**`.env`는 UTF-8로 저장하고, 한글 주석은 넣지 마세요.** 코드에서 쓰는 `load_dotenv()`는 UTF-8로 읽지만, `langgraph dev`는 `.env`를 OS 로케일 인코딩(한국어 Windows는 cp949)으로 읽어 한글 주석 한 줄에도 기동이 실패합니다. `PYTHONUTF8=1`을 설정하면 함께 해결됩니다.
 
 ```
 OPENAI_API_KEY=

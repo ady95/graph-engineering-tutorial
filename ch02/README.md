@@ -29,7 +29,7 @@ uv pip install -r requirements.txt
 cp .env.example .env
 ```
 
-`.env`에는 **ASCII만** 쓰세요. 한글 주석 한 줄로도 개발 서버가 기동 실패합니다.
+`.env`는 **UTF-8로 저장**하고 한글 주석은 넣지 마세요. `load_dotenv()`는 UTF-8로 읽지만 `langgraph dev`는 로케일 인코딩(cp949)으로 읽어 기동이 실패할 수 있습니다. `PYTHONUTF8=1`로도 해결됩니다.
 
 이 장의 예제는 LLM을 호출하지 않으므로 API 키 없이도 전부 동작합니다.
 
